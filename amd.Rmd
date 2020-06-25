@@ -1,0 +1,169 @@
+---
+title: "Personal Activity Monitoring Data"
+author: "Student!"
+date: "6/23/2020"
+output: html_document
+---
+
+##Activity Monitoring Dataset - Assignment
+
+It is now possible to collect a large amount of data about personal movement using activity monitoring devices such as a Fitbit, Nike Fuelband, or Jawbone Up. These type of devices are part of the “quantified self” movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. But these data remain under-utilized both because the raw data are hard to obtain and there is a lack of statistical methods and software for processing and interpreting the data.
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+#Data to be Analyzed
+
+The variables included in this dataset are:
+Steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+Date: The date on which the measurement was taken in YYYY-MM-DD format
+Interval: Identifier for the 5-minute interval in which measurement was taken
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+#Data Analysis
+
+#Download the data and assign name
+```{r}
+pamd_activity <- read.csv("activity.csv")
+```
+
+#Summary of the data.
+```{r}
+head(pamd_activity)
+```
+#Processing the data
+
+```{r}
+pamd_activity$day <- weekdays(as.Date(pamd_activity$date))
+pamd_activity$DateTime <- as.POSIXct(pamd_activity$date, format = "%Y-%M-%D") 
+```
+
+#Cleaning and Extracting the data
+```{r}
+clean_Data<- pamd_activity[!is.na(pamd_activity$steps),]
+head(clean_Data)
+```
+
+#To calculate the total number of steps taken per day and summary.
+
+```{r}
+sumTable <- aggregate(pamd_activity$steps~pamd_activity$date, FUN = sum)
+colnames(sumTable) <- c("Date", "Steps")
+head(sumTable)
+```
+
+#Plot the histogram for the total number of steps per day
+
+```{r}
+hist(sumTable$Steps, breaks = 7,xlab = "Steps",main = "Aggregate Steps per Day")
+```
+
+#calculation of Mean and Median of the activity Dataset.
+
+```{r}
+as.integer(mean(sumTable$Steps))
+```
+
+```{r}
+as.integer(median(sumTable$Steps))
+```
+
+#The Average Activity summary.
+```{r}
+clean <- pamd_activity[!is.na(pamd_activity$steps),]
+```
+
+#The needed R packages.
+```{r}
+library(plyr)
+library(ggplot2)
+```
+
+#The Average number of steps per interval 
+```{r}
+intervalTable <- ddply(clean, .(interval), summarize, mean = mean(steps))
+```
+
+#Creating the line plot
+
+```{r}
+ye <- ggplot(intervalTable, aes(x=interval, y=mean), xlab = "interval", ylab = "Average Number of Steps")
+ye + geom_line() + xlab("Average Number of Steps") + ggtitle("Average Number of Steps Per Interval")
+```
+
+```{r}
+maxsteps<- max(intervalTable$mean)
+# Interval that contains the maximum number of steps
+intervalTable[intervalTable$mean == maxsteps,1]
+```
+
+#Check if there is any missing values.
+```{r}
+nrow(pamd_activity[is.na(pamd_activity$steps),])
+```
+
+#Number of steps per weekday and interval
+```{r}
+avgTable<- ddply(clean,.(interval,day),summarize, mean = mean(steps))
+```
+
+
+```{r}
+pamd_data<- pamd_activity[is.na(pamd_activity$steps),]
+```
+
+```{r}
+newdata<- merge(pamd_data,avgTable, by = c("interval","day"))
+
+### Creating a dataset equal to the orignal dataset nut with the missing data filled in:
+ndata3 <- newdata[,c(6,4,1,2,5)]
+colnames(ndata3)<- c("steps","date","interval","day","DateTime")
+
+## Merging the dataset 
+merge <- rbind(clean, ndata3)
+
+## Creating Sum of Steps per date to compare the data with step 1
+
+sumTable2<- aggregate(merge$steps~merge$date, FUN = sum,)
+colnames(sumTable2)<- c("Date","Steps")
+```
+
+
+#Calculate the mean and median steps taken per day.
+```{r}
+as.integer(mean(sumTable2$Steps))
+as.integer(median(sumTable2$Steps))
+```
+
+#Histogram for the subgroup dataset.
+```{r}
+hist(sumTable2$Steps, breaks = 5,xlab = "Steps",main = "Total Steps",col = "Purple")
+hist(sumTable$Steps, breaks = 5,xlab = "Steps",main = "Total Steps",col = "Brown",add = T)
+legend("topright",c("Imputed Data","Non-NA Data"), fill = c("Purple","Brown"))
+```
+
+#Difference between Weekdays and Weekend for the Activity.
+```{r}
+merge$DayCategory <- ifelse(merge$day %in% c("Saturday", "Sunday"), "Weekend", "Weekday")
+
+## Time -series Plot of 5-min interval
+library(lattice)
+## Summarize data by interval and type of day
+intervalTable2<- ddply(merge,.(interval,DayCategory),summarize, mean = mean(steps))
+```
+
+#Finally, here is the Panel Plot to show the difference between the activities performed.
+```{r}
+xyplot(mean~interval|DayCategory, data=intervalTable2, type="1",  layout = c(1,2),
+       main="Average Steps per Interval Based on Type of Day", 
+       ylab="Average Number of Steps", xlab="Interval")
+```
+
+
+
+
+#Credit is due to those before me who showed us insight on google.com and rpubs.
+
+
+
+
+
